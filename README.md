@@ -1,3 +1,5 @@
+# Prediction of Intelligence and personality traits from fMRI during movie watching:  Deep learning and machine learning implementations - Agam Valdman and Matan Lipster
+This project aims to model and interpret human brain activity using Transformer and PLS architectures applied to fMRI data. By leveraging temporal and spatial signal patterns, the model seeks to identify cognitive processes and individual differences in neural responses across tasks and resting states.
 # fMRI Transformer and PLS Modeling
 
 This repository contains several versions of our fMRI analysis workflow.  

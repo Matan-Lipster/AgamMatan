@@ -197,7 +197,6 @@ def calc_metrics_per_output(predicted, actual):
 
 # Calculate metrics such as precision, recall, and f1-score
 def calc_metrics(predicted_labels, true_labels, flag=False):
-    """ מחשב מדדי רגרסיה במקום מדדי סיווג """
     predicted_labels = np.array(predicted_labels).flatten()
     true_labels = np.array(true_labels).flatten()
 
@@ -378,8 +377,8 @@ def train_loop(train_dataloader, eval_dataloader, test_dataloader, num_voxels, m
         test_pds.extend(test_output.cpu().detach().numpy().tolist())
         test_loss = loss_fn(test_output, test_gt)
         test_losses.append(test_loss.item())
-    # === DENORMALIZATION אחרי TEST ===
-    # בדיקות ישירות בלי denormalization
+    # === DENORMALIZATION===
+    # direct checks without denormalization
     test_gts = np.array(test_gts)
     test_pds = np.array(test_pds)
 
@@ -406,7 +405,7 @@ def train_loop(train_dataloader, eval_dataloader, test_dataloader, num_voxels, m
     test_metrics = calc_metrics(test_pds, test_gts)
     train_metrics = calc_metrics(train_pds, train_gts)
     wandb.log({'Train/R2_per_epoch': train_metrics['R2 Score'], 'Train/epoch': epoch})
-    # === גרפים ===
+    # === graphs ===
     results = calc_metrics_per_output(test_pds, test_gts)
     num_outputs = len(results)
     metrics = ['MAE', 'MSE', 'RMSE', 'R2']
@@ -559,7 +558,6 @@ def train():
         print(
             "\n[✓] Checked variance in inputs and label range. If labels are similar or inputs are flat, model won't learn.")
 
-    # בתוך train():
     diagnose_dataset(train_dataloader, y_means, y_stds)
     if train_dataloader is None or eval_dataloader is None or test_dataloader is None:
         print(f"Skipping {H}_{NET}_{NET_idx} as files are missing.")
@@ -620,4 +618,5 @@ for NET in NET_list:
             if run_mode == 'cross_val':
                 run_cross_validation(df_7T)
             else:
+
                 train()

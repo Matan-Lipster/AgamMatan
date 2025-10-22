@@ -48,31 +48,6 @@ def add_gaussian_noise(data, noise_level=0.01, n_synthetic=3):
 # This function reads multiple pickle files containing voxel data, averages the voxel values,
 # and normalizes the result using z-score normalization.
 # The function expects the data in the files to be in a pandas DataFrame format.
-"""
-def average_voxels(data_files):
-    averaged_voxs = []
-    metadata = None
-
-    for file_path in data_files:
-        with open(file_path, 'rb') as file:
-            data = pickle.load(file)
-            if isinstance(data, pd.DataFrame):
-                voxel_data = data.drop(columns=['Subject', 'timepoint', 'y'], errors='ignore')
-                mean_voxels = voxel_data.mean(axis=1)
-                normalized_mean_voxels = z_score_normalize_series(mean_voxels)
-                averaged_voxs.append(normalized_mean_voxels)
-                metadata = data.iloc[:, -3:]
-            else:
-                raise TypeError("Loaded data is not a DataFrame. Check the file format.")
-
-    if not averaged_voxs:
-        return None
-
-    averaged_data = pd.concat(averaged_voxs, axis=1)
-    final_data = pd.concat([averaged_data, metadata.reset_index(drop=True)], axis=1)
-
-    return final_data
-"""
 
 def average_voxels(data_files, apply_pca=True, n_components=50):
     all_voxels = []
@@ -88,7 +63,7 @@ def average_voxels(data_files, apply_pca=True, n_components=50):
                 movie_data = data[data['y'] == y_value]
                 voxel_data = movie_data.drop(columns=['Subject', 'timepoint', 'y'], errors='ignore')
 
-                # חיתוך של 20 ה־TR האחרונים
+                # keep only the last 20 TRs
                 if len(voxel_data) >= 20:
                     voxel_data = voxel_data.iloc[-20:, :]
 
@@ -183,43 +158,6 @@ def average_TRs(data_files, noise_level=0.01, n_synthetic_TRs=3):   # for PCA te
 
     return final_data
 
-# Function to process movie data by slicing based on the configuration
-# This function processes movie data by slicing it according to the specified configuration (start, middle, end, or all).
-# The processed data is then converted to tensors for use in machine learning models.
-'''def process_movie_data(data_vis, slice, task, inputs, outputs): # change the crap out of this
-    #inputs, outputs = [], []
-    for movie in range(1, 15):
-        movie_data = data_vis[data_vis['y'] == movie]
-        input = movie_data.iloc[:, :-3]
-        if slice == 'start':
-            input = input.iloc[:60, :]
-        elif slice == 'end':
-            input = input.iloc[-15:, :]
-        elif slice == 'middle':
-            start_index = len(input) // 2 - 7
-            input = input.iloc[start_index:start_index + 5, :]
-        elif slice == 'all':
-            if task == 'movies':
-                all_len = 260
-            else:
-                all_len = 20
-            zeroes = pd.DataFrame(0, index=range(all_len - len(input)), columns=input.columns)
-            input = pd.concat([input, zeroes], axis=0)
-        else:
-            raise Exception("For now you can choose slice from [start, middle, end, all]")
-        if input.empty:
-            print(f"Input data for movie {movie} is empty.")
-            continue
-        output = [0.0 for i in range(1, 15)]
-        output[movie - 1] = 1.0
-        inputs.append(torch.tensor(input.values))
-        outputs.append(torch.tensor(output))
-    return inputs, outputs'''
-# list of all of the chosen cognitive scales
-#PicSeq_Unadj, CardSort_Unadj, Flanker_Unadj, ReadEng_Unadj, PicVocab_Unadj, ProcSpeed_Unadj,
-# ListSort_Unadj, CogFluidComp_Unadj, CogEarlyComp_Unadj, CogTotalComp_Unadj, PercReject_Unadj,
-# EmotSupp_Unadj, InstruSupp_Unadj, PercStress_Unadj, SelfEff_Unadj, Endurance_Unadj,
-# Dexterity_Unadj, Strength_Unadj, Odor_Unadj, Taste_Unadj
 def process_data(test, subject_id):
     df = pd.read_csv("all_data.csv")
     df_7T = df.loc[df['7T_RS-fMRI_Count'] == 4].reset_index(drop=True)
@@ -258,8 +196,8 @@ def process_data(test, subject_id):
 
 
 # Function to process a directory and average voxel data based on the configuration
-# This function processes all the relevant files in a directory, averages the voxel data if specified,
-# and saves the result to a new file.
+# This function processes all the relevant files in a directory, averages the voxel data if specified
+
 def process_directory(subject_folder, H, NET, NET_idx, Avg, noise_level=0.01, n_synthetic_TRs=3):
     try:
         if H == 'BOTH':
@@ -335,10 +273,6 @@ def create_synthetic_subjects(subject_folder, H, NET, NET_idx, noise_level=0.01,
 
     return synthetic_folders
 
-# Function to shuffle labels
-# Randomly shuffles the order of labels.
-
-
 # Function to get dataloaders for training, evaluation, and testing (called on ly in normal training, not in cross validation)
 def get_dataloaders2(directory, NET, NET_idx, H, slice, batch_size, df_7T, Avg=0, noise_level=0.01,
                      n_synthetic_TRs=0, Create_synthetic_subjects=0, n_synthetic_subjects=0, Group_by_subjects=0,
@@ -357,7 +291,6 @@ def get_dataloaders2(directory, NET, NET_idx, H, slice, batch_size, df_7T, Avg=0
 
     dataloaders = {}
     file_exists = True
-    print("im in data_loader2!!!!!!!!!!!!!!!")
     inputs = {'train': [], 'eval': [], 'test': []}
     outputs = {'train': [], 'eval': [], 'test': []}
 
@@ -543,12 +476,6 @@ def get_dataloaders2_helper(data_files, NET, NET_idx, H, slice, batch_size, df_7
         if osp.basename(osp.dirname(file)) in set(df_7T["Subject"].astype(str).unique())
     })
 
-    # In cross_val we run with grouping by subjects so we don't want to create synhetic subjects and then group them - this code is removed
-    #if Create_synthetic_subjects == 1:
-    #    for subject_folder in subject_folders:
-    #        synthetic_folders = create_synthetic_subjects(subject_folder, H, NET, NET_idx, noise_level=noise_level, n_synthetic=10)
-    #        subject_folders.extend(synthetic_folders)
-
     if Group_by_subjects == 1:
         #random.shuffle(subject_folders)
         group_folders_list = []
@@ -702,3 +629,4 @@ def get_dataloaders2_random_split(directory, NET, NET_idx, H, slice, batch_size,
     test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
 
     return train_loader, val_loader, test_loader, tensor_inputs.shape[-1], y_means, y_stds
+

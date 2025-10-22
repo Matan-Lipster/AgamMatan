@@ -208,7 +208,6 @@ def calc_metrics_per_output(predicted, actual):
 
 # Calculate metrics such as precision, recall, and f1-score
 def calc_metrics(predicted_labels, true_labels, flag=False):
-    """ מחשב מדדי רגרסיה במקום מדדי סיווג """
     predicted_labels = np.array(predicted_labels).flatten()
     true_labels = np.array(true_labels).flatten()
 
@@ -399,14 +398,14 @@ def train_loop(train_dataloader, eval_dataloader, test_dataloader, num_voxels, m
         test_data = test_batch[0].float().cuda()
         test_gt = test_batch[1].float().cuda().view(-1, 1)
 
-        # ---------- הדפסת שונות בין קלטים ----------
+        # some helpful prints
         print("++++++++++++ test_data[0]:", test_data[0])
         if test_data.shape[0] > 1:
             print("------------ test_data[1]:", test_data[1])
             print("\n--- Norm diff between test_data[0] and [1]:",
                   torch.norm(test_data[0] - test_data[1]).item())
 
-        # ---------- שלבי Encoder Step-by-Step ----------
+        # ---------- step by step Encoder ----------
         with torch.no_grad():
             embedded = model.encoder_input_layer(test_data)
             print("\n== Before Positional Encoding ==")
@@ -429,22 +428,21 @@ def train_loop(train_dataloader, eval_dataloader, test_dataloader, num_voxels, m
                 print("encoded[1, 0, :5] =", encoded[1, 0, :5].cpu().numpy())
                 print("Norm (encoded[0] - [1]):", torch.norm(encoded[0] - encoded[1]).item())
 
-        # ---------- תחזית ----------
+        # ---------- predictions ----------
         #test_decoder_input = torch.zeros(test_data.size(0), 1, num_predicted_features).to(test_data.device)
-        test_output = model(test_data)#, test_decoder_input)  # המודל כולל את כל שלבי ההכנה
-        test_output = test_output.mean(dim=1)  # ממוצע על כל הרצף
+        test_output = model(test_data)#, test_decoder_input)
+        test_output = test_output.mean(dim=1)
 
-        print("📦 decoder_output shape:", test_output.shape)
-        print(f"🎯 y_true: {test_gt.cpu().numpy()}")
-        print(f"🎯 y_pred: {test_output.detach().cpu().numpy()}")
+        print("decoder_output shape:", test_output.shape)
+        print(f"y_true: {test_gt.cpu().numpy()}")
+        print(f"y_pred: {test_output.detach().cpu().numpy()}")
 
-        # ---------- חישוב loss ואיסוף ----------
+        # ---------- loss calculation ----------
         test_gts.extend(test_gt.cpu().detach().numpy().tolist())
         test_pds.extend(test_output.cpu().detach().numpy().tolist())
         test_loss = loss_fn(test_output, test_gt)
         test_losses.append(test_loss.item())
-    # === DENORMALIZATION אחרי TEST ===
-    # בדיקות ישירות בלי denormalization
+    # === DENORMALIZATION===
     test_gts = np.array(test_gts)
     test_pds = np.array(test_pds)
     #print(f" test_gts.shape : {test_gts}, test_pds.shape : {test_pds.shape}")
@@ -624,7 +622,6 @@ def train():
         print(
             "\n[✓] Checked variance in inputs and label range. If labels are similar or inputs are flat, model won't learn.")
 
-    # בתוך train():
     diagnose_dataset(train_dataloader, y_means, y_stds)
     if train_dataloader is None or eval_dataloader is None or test_dataloader is None:
         print(f"Skipping {NET}_{NET_idx} as files are missing.")
@@ -652,30 +649,8 @@ def train():
 
 # Loop for running normal training or cross-validation based on configuration
 
-""""
-# Load the data
-df = pd.read_csv("all_data.csv")
-
-# Filter the data where '7T_RS-fMRI_Count' is 4
-df_7T = df.loc[df['7T_RS-fMRI_Count'] == 4]
-
-# Reset the index and assign it back to df_7T
-df_7T = df_7T.reset_index(drop=True)
-
-# Check the information of the filtered DataFrame
-df_7T.info()
-
-# Convert the 'Language_Task_Story_Acc' column to a numpy array
-y = df_7T['Language_Task_Story_Acc'].to_numpy()
-"""
-
-
-
-
-
 for NET in NET_list:
     for NET_idx in NET_indexes:
-#        for H in H_list:
         print(f"===> checking {NET}_{NET_idx} ")
         print(
         f"Running training on {NET}_{NET_idx} for {epochs} epochs - Batch Size: {batch_size}, Learning Rate: {learning_rate}")

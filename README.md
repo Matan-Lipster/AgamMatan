@@ -1,5 +1,30 @@
 # Prediction of Intelligence and personality traits from fMRI during movie watching:  Deep learning and machine learning implementations - Agam Valdman and Matan Lipster
 This project aims to model and interpret human brain activity using Transformer and PLS architectures applied to fMRI data. By leveraging temporal and spatial signal patterns, the model seeks to identify cognitive processes and individual differences in neural responses across tasks and resting states.
+
+## Repository Structure
+
+The repository includes three main experimental pipelines — the **original Transformer**, the **colleagues’ Transformer (`gy_`)**, and the **PLS-based** model.  
+Each pipeline consists of a main script, a model definition file, and a preprocessing module.
+
+```plaintext
+├── delete.py                # Utility script to print or inspect specific fMRI .pkl files
+
+# --- Original Transformer Workflow ---
+├── main_try.py              # Main execution script for our original Transformer and dataset
+├── Transformer.py           # Core Transformer architecture
+├── preprocess2.py           # Preprocessing of fMRI data (handles data split, files and more)
+
+# --- Colleagues' Transformer Workflow (gy_) ---
+├── gy_main.py               # Main script for the colleagues’ Transformer and dataset
+├── gy_model.py              # Model definition for the gy_ Transformer variant
+├── gy_preprocess.py         # Preprocessing pipeline for the gy_ dataset (handles data split, files and more)
+
+# --- PLS Model Workflow (pls_) ---
+├── pls_main.py              # Main script for running the PLS-based workflow
+├── pls_model.py             # Partial Least Squares (PLS) model implementation
+├── pls_preprocess2.py       # Preprocessing for the PLS workflow (handles data aggregation and averaging, data split, files and more)
+
+
 # fMRI Transformer and PLS Modeling
 
 This repository contains several versions of our fMRI analysis workflow.  

@@ -23,7 +23,7 @@ Each pipeline consists of a main script, a model definition file, and a preproce
 ├── pls_main.py              # Main script for running the PLS-based workflow
 ├── pls_model.py             # Partial Least Squares (PLS) model implementation
 ├── pls_preprocess2.py       # Preprocessing for the PLS workflow (handles data aggregation and averaging, data split, files and more)
-
+---
 
 ## fMRI Transformer and PLS Modeling
 

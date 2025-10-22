@@ -48,31 +48,6 @@ def add_gaussian_noise(data, noise_level=0.01, n_synthetic=3):
 # This function reads multiple pickle files containing voxel data, averages the voxel values,
 # and normalizes the result using z-score normalization.
 # The function expects the data in the files to be in a pandas DataFrame format.
-"""
-def average_voxels(data_files):
-    averaged_voxs = []
-    metadata = None
-
-    for file_path in data_files:
-        with open(file_path, 'rb') as file:
-            data = pickle.load(file)
-            if isinstance(data, pd.DataFrame):
-                voxel_data = data.drop(columns=['Subject', 'timepoint', 'y'], errors='ignore')
-                mean_voxels = voxel_data.mean(axis=1)
-                normalized_mean_voxels = z_score_normalize_series(mean_voxels)
-                averaged_voxs.append(normalized_mean_voxels)
-                metadata = data.iloc[:, -3:]
-            else:
-                raise TypeError("Loaded data is not a DataFrame. Check the file format.")
-
-    if not averaged_voxs:
-        return None
-
-    averaged_data = pd.concat(averaged_voxs, axis=1)
-    final_data = pd.concat([averaged_data, metadata.reset_index(drop=True)], axis=1)
-
-    return final_data
-"""
 
 def average_voxels(data_files, apply_pca=True, n_components=50):
     all_voxels = []
@@ -88,7 +63,7 @@ def average_voxels(data_files, apply_pca=True, n_components=50):
                 movie_data = data[data['y'] == y_value]
                 voxel_data = movie_data.drop(columns=['Subject', 'timepoint', 'y'], errors='ignore')
 
-                # חיתוך של 20 ה־TR האחרונים
+                # keeps the last 20 TRs
                 if len(voxel_data) >= 20:
                     voxel_data = voxel_data.iloc[-20:, :]
 
@@ -117,6 +92,7 @@ def average_voxels(data_files, apply_pca=True, n_components=50):
     final_data = pd.concat([reduced_df, metadata_df.reset_index(drop=True)], axis=1)
 #    print(final_data)
     return final_data
+    
 # Function to average the last few TRs (time points) for each movie and add synthetic samples
 # This function averages the last few time points (TRs) for each movie in the dataset.
 # It also adds synthetic TRs by introducing Gaussian noise, and optionally applies PCA for dimensionality reduction.
@@ -183,43 +159,7 @@ def average_TRs(data_files, noise_level=0.01, n_synthetic_TRs=3):   # for PCA te
 
     return final_data
 
-# Function to process movie data by slicing based on the configuration
-# This function processes movie data by slicing it according to the specified configuration (start, middle, end, or all).
-# The processed data is then converted to tensors for use in machine learning models.
-'''def process_movie_data(data_vis, slice, task, inputs, outputs): # change the crap out of this
-    #inputs, outputs = [], []
-    for movie in range(1, 15):
-        movie_data = data_vis[data_vis['y'] == movie]
-        input = movie_data.iloc[:, :-3]
-        if slice == 'start':
-            input = input.iloc[:60, :]
-        elif slice == 'end':
-            input = input.iloc[-15:, :]
-        elif slice == 'middle':
-            start_index = len(input) // 2 - 7
-            input = input.iloc[start_index:start_index + 5, :]
-        elif slice == 'all':
-            if task == 'movies':
-                all_len = 260
-            else:
-                all_len = 20
-            zeroes = pd.DataFrame(0, index=range(all_len - len(input)), columns=input.columns)
-            input = pd.concat([input, zeroes], axis=0)
-        else:
-            raise Exception("For now you can choose slice from [start, middle, end, all]")
-        if input.empty:
-            print(f"Input data for movie {movie} is empty.")
-            continue
-        output = [0.0 for i in range(1, 15)]
-        output[movie - 1] = 1.0
-        inputs.append(torch.tensor(input.values))
-        outputs.append(torch.tensor(output))
-    return inputs, outputs'''
-# list of all of the chosen cognitive scales
-#PicSeq_Unadj, CardSort_Unadj, Flanker_Unadj, ReadEng_Unadj, PicVocab_Unadj, ProcSpeed_Unadj,
-# ListSort_Unadj, CogFluidComp_Unadj, CogEarlyComp_Unadj, CogTotalComp_Unadj, PercReject_Unadj,
-# EmotSupp_Unadj, InstruSupp_Unadj, PercStress_Unadj, SelfEff_Unadj, Endurance_Unadj,
-# Dexterity_Unadj, Strength_Unadj, Odor_Unadj, Taste_Unadj
+
 def process_data(test, subject_id):
     df = pd.read_csv("all_data.csv")
     df_7T = df.loc[df['7T_RS-fMRI_Count'] == 4].reset_index(drop=True)
@@ -253,7 +193,7 @@ def process_data(test, subject_id):
      #print(f"Subject {subject_id} original values: {subject_values}")
 
     normalized = (subject_values - mean) / std
-    # #print(f"Normalized values: {normalized}\n")
+    #print(f"Normalized values: {normalized}\n")
     return torch.tensor(normalized), mean, std
 
 
@@ -358,7 +298,6 @@ def get_dataloaders2(directory, NET, NET_idx, H, slice, batch_size, df_7T, Avg=0
 
     dataloaders = {}
     file_exists = True
-    print("im in data_loader2!!!!!!!!!!!!!!!")
     inputs = {'train': [], 'eval': [], 'test': []}
     outputs = {'train': [], 'eval': [], 'test': []}
 
@@ -544,12 +483,6 @@ def get_dataloaders2_helper(data_files, NET, NET_idx, H, slice, batch_size, df_7
         if osp.basename(osp.dirname(file)) in set(df_7T["Subject"].astype(str).unique())
     })
 
-    # In cross_val we run with grouping by subjects so we don't want to create synhetic subjects and then group them - this code is removed
-    #if Create_synthetic_subjects == 1:
-    #    for subject_folder in subject_folders:
-    #        synthetic_folders = create_synthetic_subjects(subject_folder, H, NET, NET_idx, noise_level=noise_level, n_synthetic=10)
-    #        subject_folders.extend(synthetic_folders)
-
     if Group_by_subjects == 1:
         #random.shuffle(subject_folders)
         group_folders_list = []
@@ -634,80 +567,6 @@ def get_dataloaders2_for_cross_val(data_files, NET, NET_idx, H, batch_size, slic
 
 from torch.utils.data import random_split
 
-# def get_dataloaders2_random_split(directory, NET, NET_idx, slice, batch_size, df_7T, Avg=0, noise_level=0.01,
-# #                                   n_synthetic_TRs=0, Create_synthetic_subjects=0, n_synthetic_subjects=0,
-# #                                  Group_by_subjects=0, group_size=10, split_ratio=(0.7, 0.15, 0.15)):
-# #     inputs = []
-# #     outputs = []
-# #     y_means = []
-# #     y_stds = []
-# #     counter = 0
-# #     subject_folders = list(glob.iglob(osp.join(directory, '*')))
-# #     subject_folders = [folder for folder in subject_folders
-# #                        if 'SYNTH_' not in folder and 'GROUP_' not in folder
-# #                        and os.path.basename(folder) in df_7T["Subject"].astype(str).unique()]
-# #
-# #     for subject_folder in subject_folders:
-# #         try:
-# #             if Avg in [7, 2]:
-# #                 process_directory(subject_folder, NET, NET_idx, Avg, noise_level=noise_level,
-# #                                   n_synthetic_TRs=n_synthetic_TRs)
-# #
-# #             if Avg in [7, 2]:
-# #                 file_path = osp.join(subject_folder, f'{NET}_{NET_idx}_Avg.pkl')
-# #             else:
-# #                 file_path = osp.join(subject_folder, f'{NET}_{NET_idx}.pkl')
-# #
-# #             if not osp.exists(file_path):
-# #                 print(f"File does not exist: {file_path}")
-# #                 continue
-# #
-# #             if Avg == 1:
-# #                 data_vis = average_voxels([file_path], n_components=20)
-# #
-# #             else:
-# #                 with open(file_path, 'rb') as file:
-# #                     data_vis = pickle.load(file)
-# #
-# #
-# #             counter += 1
-# # #            data_vis = data_vis.drop(columns=['Subject', 'timepoint', 'y'], errors='ignore')
-# #             print(counter)
-# #             inputs.append(torch.tensor(data_vis, dtype=torch.float64))
-# #             label, y_mean, y_std = process_data(NET, os.path.basename(subject_folder))
-# #             outputs.append(label.squeeze())
-# #             y_means.append(torch.tensor(y_mean))
-# #             y_stds.append(torch.tensor(y_std))
-# #
-# #         except Exception as e:
-# #             print(f"Error processing {subject_folder}: {e}")
-# #             continue
-# #
-# #     if len(inputs) == 0 or len(outputs) == 0:
-# #         return None, None, None, None, None, None
-# #
-# #     tensor_inputs = torch.stack(inputs)
-# #     tensor_outputs = torch.stack(outputs)
-# #
-# #     global_mean = tensor_inputs.mean(dim=0, keepdim=True)
-# #     global_std = tensor_inputs.std(dim=0, keepdim=True)
-# #     global_std[global_std < 1e-6] = 1.0
-# #     tensor_inputs = (tensor_inputs - global_mean) / global_std
-# #
-# #     dataset = TensorDataset(tensor_inputs, tensor_outputs)
-# #
-# #     train_size = int(split_ratio[0] * len(dataset))
-# #     val_size = int(split_ratio[1] * len(dataset))
-# #     test_size = len(dataset) - train_size - val_size
-# #
-# #     train_set, val_set, test_set = random_split(dataset, [train_size, val_size, test_size])
-# #     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
-# #     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
-# #     test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
-# #
-# #     return train_loader, val_loader, test_loader, tensor_inputs.shape[-1], y_means, y_stds
-
-
 
 def get_dataloaders2_random_split(directory, NET, NET_idx, slice, batch_size, df_7T, Avg=0, noise_level=0.01,
                                   n_synthetic_TRs=0, Create_synthetic_subjects=0, n_synthetic_subjects=0,
@@ -719,7 +578,7 @@ def get_dataloaders2_random_split(directory, NET, NET_idx, slice, batch_size, df
     counter = 0
 
     subject_folders = list(glob.iglob(os.path.join(directory, '*')))
-    subject_folders = subject_folders[0:10]
+    subject_folders = subject_folders[0:10] # used to slice the amount of subjects
     subject_folders = [folder for folder in subject_folders
                        if 'SYNTH_' not in folder and 'GROUP_' not in folder
                        and os.path.basename(folder) in df_7T["Subject"].astype(str).unique()]
@@ -756,7 +615,7 @@ def get_dataloaders2_random_split(directory, NET, NET_idx, slice, batch_size, df
                 print(f"No valid movie files for subject {subject_folder}")
                 continue
 
-            combined = torch.cat(subject_movies, dim=0)  # כל הסרטים לרצף אחד
+            combined = torch.cat(subject_movies, dim=0)  # combines all movies
             N_TRs = 100
             if combined.shape[0] > N_TRs:
                 combined = combined[-N_TRs:, :]
@@ -766,16 +625,6 @@ def get_dataloaders2_random_split(directory, NET, NET_idx, slice, batch_size, df
             outputs.append(label.squeeze())
             y_means.append(torch.tensor(y_mean))
             y_stds.append(torch.tensor(y_std))
-
-            # אם y_mean / y_std הם None (למשל במצב "none"), נכניס טנסורים דיפולטיביים
-            #if y_mean is None:
-            #    y_mean = np.zeros(label.shape[-1], dtype=np.float32)
-            #if y_std is None:
-            #    y_std = np.ones(label.shape[-1], dtype=np.float32)
-
-            #y_means.append(torch.tensor(y_mean))
-            #y_stds.append(torch.tensor(y_std))
-
 
 
         except Exception as e:
@@ -810,5 +659,6 @@ def get_dataloaders2_random_split(directory, NET, NET_idx, slice, batch_size, df
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
+
 
     return train_loader, val_loader, test_loader, tensor_inputs.shape[-1], y_means, y_stds

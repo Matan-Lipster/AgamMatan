@@ -25,7 +25,7 @@ Each pipeline consists of a main script, a model definition file, and a preproce
 ├── pls_preprocess2.py       # Preprocessing for the PLS workflow (handles data aggregation and averaging, data split, files and more)
 
 
-# fMRI Transformer and PLS Modeling
+## fMRI Transformer and PLS Modeling
 
 This repository contains several versions of our fMRI analysis workflow.  
 The project is organized around three main components:  

@@ -18,8 +18,6 @@ import torch.nn.functional as F
 os.makedirs("models", exist_ok = True)
 # Global Hyperparameters
 
-# cross_val hyperparameters
-#directory = r"D:\Final Project\TASK_RH_vis2\dataset"
 directory = r"F:\HCP_DATA"
 # Load the data
 df_7T = pd.read_csv("all_data.csv")
@@ -585,3 +583,4 @@ else:
         plt.tight_layout()
         plt.subplots_adjust(bottom=0.4)  # extra room for long labels
         plt.show()
+
